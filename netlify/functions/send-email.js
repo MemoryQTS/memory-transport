@@ -1,34 +1,37 @@
-const sgMail = require('@sendgrid/mail');
-
 exports.handler = async (event) => {
-  // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // Get SendGrid API key from environment variable
+  const sgMail = require('@sendgrid/mail');
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   try {
-    const data = JSON.parse(event.body);
+    const { to, subject, text } = JSON.parse(event.body);
     
-    // Send email
     await sgMail.send({
-      to: data.to,
-      from: 'memory.transport@qtslimo.com',
-      subject: data.subject,
-      text: data.text,
+      to: to,
+      from: {
+        email: 'memory.transport@qtslimo.com',
+        name: 'Memory Transport by QTS'
+      },
+      subject: subject,
+      text: text,
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Email sent successfully' })
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: JSON.stringify({ success: true })
     };
   } catch (error) {
-    console.error(error);
+    console.error('SendGrid Error:', error.response ? error.response.body : error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to send email' })
+      body: JSON.stringify({ error: error.message })
     };
   }
 };
