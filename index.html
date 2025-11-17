@@ -188,7 +188,7 @@
 
             const sendQuoteEmails = async (quote) => {
                 try {
-                    // Email to admin
+                    // Send admin notification
                     const adminEmailContent = `
 New Quote Request Received!
 
@@ -216,13 +216,17 @@ NOTES: ${quote.notes || 'None'}
 Submitted: ${new Date(quote.submittedAt).toLocaleString()}
                     `;
 
-                    await sendEmail(
-                        ADMIN_EMAIL,
-                        `New Quote Request - ${quote.name}`,
-                        adminEmailContent
-                    );
+                    await fetch('/.netlify/functions/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: 'memory.transport@qtslimo.com',
+                            subject: `New Quote Request - ${quote.name}`,
+                            text: adminEmailContent
+                        })
+                    });
 
-                    // Confirmation email to client
+                    // Send client confirmation
                     const clientEmailContent = `
 Hi ${quote.name},
 
@@ -244,44 +248,20 @@ memory.transport@qtslimo.com
 (817) 616-0509
                     `;
 
-                    await sendEmail(
-                        quote.email,
-                        'Quote Request Received - Memory Transport by QTS',
-                        clientEmailContent
-                    );
+                    await fetch('/.netlify/functions/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: quote.email,
+                            subject: 'Quote Request Received - Memory Transport by QTS',
+                            text: clientEmailContent
+                        })
+                    });
 
                     console.log('Emails sent successfully');
                 } catch (error) {
                     console.error('Email send failed:', error);
                     alert('Quote saved! Note: Email notifications may not have sent. Please check your inbox.');
-                }
-            };
-
-            const sendEmail = async (toEmail, subject, content) => {
-                const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        personalizations: [{
-                            to: [{ email: toEmail }]
-                        }],
-                        from: {
-                            email: FROM_EMAIL,
-                            name: FROM_NAME
-                        },
-                        subject: subject,
-                        content: [{
-                            type: 'text/plain',
-                            value: content
-                        }]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to send email');
                 }
             };
 
