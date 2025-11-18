@@ -39,6 +39,7 @@
                     <main className="p-4">
                         {view === 'client' ? <QuoteForm /> : !authenticated ? <Login setAuth={setAuthenticated} /> : <Admin />}
                     </main>
+                    <Footer />
                 </div>
             );
         }
@@ -174,7 +175,23 @@
                 </div>
             );
         }
-
+function Footer() {
+            return (
+                <footer className="bg-gray-800 text-white py-6 mt-12">
+                    <div className="max-w-4xl mx-auto px-4 text-center">
+                        <p className="text-sm mb-2">© 2024 Memory Transport by QTS - White Glove Memory Preservation</p>
+                        <p className="text-xs text-gray-400 mb-3">A Division of QTS Black Car & Limo</p>
+                        <div className="space-x-4 text-sm">
+                            <a href="terms.html" className="text-blue-400 hover:text-blue-300 underline">Terms of Service</a>
+                            <span className="text-gray-500">|</span>
+                            <span>Fort Worth, TX</span>
+                            <span className="text-gray-500">|</span>
+                            <span>(817) 616-0509</span>
+                        </div>
+                    </div>
+                </footer>
+            );
+        }
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
