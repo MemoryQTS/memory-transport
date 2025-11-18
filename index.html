@@ -22,11 +22,16 @@
             return (
                 <div className="min-h-screen bg-gray-50">
                     <header className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg p-4">
-                        <h1 className="text-2xl font-bold">Memory Transport by QTS</h1>
-                        <p className="text-sm text-gray-300">White-Glove Memory Preservation</p>
-                        <div className="flex gap-2 mt-3">
-                            <button onClick={() => setView('client')} className={`px-4 py-2 rounded ${view === 'client' ? 'bg-blue-600' : 'bg-gray-700'}`}>Get Quote</button>
-                            <button onClick={() => setView('admin')} className={`px-4 py-2 rounded ${view === 'admin' ? 'bg-blue-600' : 'bg-gray-700'}`}>Admin</button>
+                        <div className="flex items-center gap-3 mb-3">
+                            <img src="logo (2).png" alt="Memory Transport Logo" className="h-16 w-16 rounded" />
+                            <div>
+                                <h1 className="text-2xl font-bold">Memory Transport by QTS</h1>
+                                <p className="text-sm text-gray-300">White-Glove Memory Preservation</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setView('client')} className={`px-4 py-2 rounded font-semibold ${view === 'client' ? 'bg-blue-600' : 'bg-gray-700'}`}>Get Quote</button>
+                            <button onClick={() => setView('admin')} className={`px-4 py-2 rounded font-semibold ${view === 'admin' ? 'bg-blue-600' : 'bg-gray-700'}`}>Admin</button>
                         </div>
                     </header>
                     <main className="p-4">
@@ -59,53 +64,77 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             to: form.email,
-                            subject: 'Quote Request Received',
-                            text: `Hi ${form.name},\n\nThank you for your quote request! We'll respond within 24 hours.\n\nBest regards,\nMemory Transport by QTS\n(817) 616-0509`
+                            subject: 'Quote Request Received - Memory Transport by QTS',
+                            text: `Hi ${form.name},\n\nThank you for choosing Memory Transport by QTS!\n\nWe've received your quote request for ${form.tapes} tape(s).\n\nWhat happens next:\n1. We'll review your request and send a detailed quote within 24 hours\n2. Once approved, we'll schedule white-glove pickup\n3. Your tapes will be professionally digitized (7-10 business days standard)\n4. Digital files and originals delivered back to you\n\nQuestions? Reply to this email or call us at (817) 616-0509.\n\nBest regards,\nMemory Transport by QTS\nmemory.transport@qtslimo.com\n(817) 616-0509`
                         })
                     });
 
                     setSubmitted(true);
+                    setTimeout(() => {
+                        setSubmitted(false);
+                        setForm({ name: '', email: '', phone: '', tapes: '', types: '' });
+                    }, 3000);
                 } catch (err) {
-                    alert('Submission saved locally. Email notification may have failed.');
+                    alert('Quote saved! Email notification may not have sent.');
                 }
             };
 
             if (submitted) {
                 return (
-                    <div className="bg-white p-6 rounded-lg shadow text-center">
-                        <div className="text-5xl mb-4">✓</div>
+                    <div className="bg-white p-6 rounded-lg shadow text-center max-w-2xl mx-auto">
+                        <div className="text-green-600 text-5xl mb-4">✓</div>
                         <h2 className="text-xl font-bold">Quote Request Received!</h2>
                         <p className="text-gray-600 mt-2">We'll contact you within 24 hours.</p>
+                        <p className="text-sm text-gray-500 mt-2">Confirmation sent to {form.email}</p>
                     </div>
                 );
             }
 
             return (
                 <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
-                    <h2 className="text-2xl font-bold mb-4">Request a Quote</h2>
+                    <h2 className="text-2xl font-bold mb-2">Request a Quote</h2>
+                    <p className="text-gray-600 mb-4 text-sm">Tell us about your tapes and we'll provide a detailed quote.</p>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block font-medium mb-1">Name *</label>
-                            <input required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full border-2 p-3 rounded" />
+                            <label className="block font-medium mb-1 text-sm">Full Name *</label>
+                            <input required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full border-2 p-3 rounded focus:border-blue-500 focus:outline-none" />
                         </div>
                         <div>
-                            <label className="block font-medium mb-1">Email *</label>
-                            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full border-2 p-3 rounded" />
+                            <label className="block font-medium mb-1 text-sm">Email *</label>
+                            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full border-2 p-3 rounded focus:border-blue-500 focus:outline-none" />
                         </div>
                         <div>
-                            <label className="block font-medium mb-1">Phone *</label>
-                            <input type="tel" required value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} className="w-full border-2 p-3 rounded" />
+                            <label className="block font-medium mb-1 text-sm">Phone *</label>
+                            <input type="tel" required value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} className="w-full border-2 p-3 rounded focus:border-blue-500 focus:outline-none" />
                         </div>
                         <div>
-                            <label className="block font-medium mb-1">Number of Tapes *</label>
-                            <input type="number" required value={form.tapes} onChange={(e) => setForm({...form, tapes: e.target.value})} className="w-full border-2 p-3 rounded" />
+                            <label className="block font-medium mb-1 text-sm">Number of Tapes *</label>
+                            <input type="number" min="1" required value={form.tapes} onChange={(e) => setForm({...form, tapes: e.target.value})} className="w-full border-2 p-3 rounded focus:border-blue-500 focus:outline-none" />
                         </div>
                         <div>
-                            <label className="block font-medium mb-1">Tape Types *</label>
-                            <input required placeholder="e.g., VHS, MiniDV" value={form.types} onChange={(e) => setForm({...form, types: e.target.value})} className="w-full border-2 p-3 rounded" />
+                            <label className="block font-medium mb-1 text-sm">Tape Types *</label>
+                            <input required placeholder="e.g., VHS, MiniDV, Hi8" value={form.types} onChange={(e) => setForm({...form, types: e.target.value})} className="w-full border-2 p-3 rounded focus:border-blue-500 focus:outline-none" />
                         </div>
-                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700">Submit Quote Request</button>
+                        <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                            <p className="text-sm text-blue-900 font-semibold mb-2">Pricing Guide:</p>
+                            <ul className="text-xs text-blue-800 space-y-1">
+                                <li>• Basic: $35/tape (Standard digitization)</li>
+                                <li>• Premium: $45/tape (USB + extended access)</li>
+                                <li>• White Glove: $60/tape (Lifetime cloud storage)</li>
+                                <li>• 10+ tapes: Discounted rates apply</li>
+                            </ul>
+                        </div>
+                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 transition shadow-lg">Submit Quote Request</button>
                     </form>
+                    <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <p className="text-xs text-gray-600 font-semibold mb-2">What happens next?</p>
+                        <ol className="text-xs text-gray-600 space-y-1">
+                            <li>1. We review and send detailed quote within 24 hours</li>
+                            <li>2. Schedule white-glove pickup at your convenience</li>
+                            <li>3. Professional digitization (7-10 business days)</li>
+                            <li>4. Digital files and originals delivered back to you</li>
+                        </ol>
+                    </div>
                 </div>
             );
         }
@@ -115,9 +144,9 @@
             return (
                 <div className="bg-white p-6 rounded-lg shadow max-w-md mx-auto">
                     <h2 className="text-xl font-bold mb-4">Admin Login</h2>
-                    <form onSubmit={(e) => { e.preventDefault(); pwd === 'qts2024' ? setAuth(true) : alert('Wrong password'); }}>
-                        <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="w-full border-2 p-3 rounded mb-4" placeholder="Password" />
-                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded">Login</button>
+                    <form onSubmit={(e) => { e.preventDefault(); pwd === 'qts2024' ? setAuth(true) : alert('Incorrect password'); }}>
+                        <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="w-full border-2 p-3 rounded mb-4 focus:border-blue-500 focus:outline-none" placeholder="Password" />
+                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700">Login</button>
                     </form>
                 </div>
             );
@@ -125,9 +154,21 @@
 
         function Admin() {
             return (
-                <div className="bg-white p-6 rounded-lg shadow">
+                <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
                     <h2 className="text-xl font-bold mb-4">Admin Dashboard</h2>
-                    <p className="text-gray-600">Check your email at memory.transport@qtslimo.com for quote requests!</p>
+                    <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                        <p className="font-semibold text-blue-900 mb-2">📧 Email Notifications</p>
+                        <p className="text-sm text-blue-800">All quote requests are automatically sent to:</p>
+                        <p className="text-sm font-mono bg-white p-2 rounded mt-2">memory.transport@qtslimo.com</p>
+                    </div>
+                    <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-700">Quote requests include:</p>
+                        <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                            <li>• Client contact information</li>
+                            <li>• Number and types of tapes</li>
+                            <li>• Automatic confirmation sent to client</li>
+                        </ul>
+                    </div>
                 </div>
             );
         }
