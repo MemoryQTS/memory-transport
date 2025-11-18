@@ -62,6 +62,8 @@
                         })
                     });
 
+                    // Wait 1 seconds (1000 milliseconds)
+await new Promise(resolve => setTimeout(resolve, 1000));
 
                     // Then send client confirmation
                     await fetch('/.netlify/functions/send-email', {
