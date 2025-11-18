@@ -56,7 +56,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            to: 'memory.transport@qtslimo.com',
+                            to: 'booking@qtslimo.com',
                             subject: `New Quote - ${form.name}`,
                             text: `Name: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nTapes: ${form.tapes}\nTypes: ${form.types}\nTier: ${form.tier}\nAdd-ons: ${form.addons || 'None'}`
                         })
