@@ -2,631 +2,137 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Memory Transport by QTS - Booking System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Transport by QTS</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            overscroll-behavior: none;
-            -webkit-font-smoothing: antialiased;
-        }
-        .calendar-day { 
-            min-height: 80px; 
-        }
-        input, textarea, select {
-            font-size: 16px !important;
-        }
-        .touch-target {
-            min-height: 44px;
-        }
-        .tier-card {
-            transition: all 0.2s;
-        }
-        .tier-card.selected {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-        }
-    </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        const useLocalStorage = (key, initialValue) => {
-            const [value, setValue] = useState(() => {
-                const stored = localStorage.getItem(key);
-                return stored ? JSON.parse(stored) : initialValue;
-            });
-
-            useEffect(() => {
-                localStorage.setItem(key, JSON.stringify(value));
-            }, [key, value]);
-
-            return [value, setValue];
-        };
-
-        const PRICING = {
-            basic: { price: 35, discount10: 30 },
-            premium: { price: 45, discount10: 38 },
-            whiteGlove: { price: 60, discount10: 52 }
-        };
+        const { useState } = React;
 
         function App() {
             const [view, setView] = useState('client');
-            const [adminPassword, setAdminPassword] = useState('');
-            const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-            const [quotes, setQuotes] = useLocalStorage('memoryTransportQuotes', []);
-            const [bookings, setBookings] = useLocalStorage('memoryTransportBookings', []);
-
-            const ADMIN_PASSWORD = 'qts2024';
+            const [password, setPassword] = useState('');
+            const [authenticated, setAuthenticated] = useState(false);
 
             return (
                 <div className="min-h-screen bg-gray-50">
-                    <header className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg sticky top-0 z-50">
-                        <div className="px-4 py-4">
-                            <div className="flex flex-col gap-3">
-                                <div>
-                                    <h1 className="text-xl sm:text-2xl font-bold">Memory Transport by QTS</h1>
-                                    <p className="text-gray-300 text-xs sm:text-sm mt-1">White-Glove Memory Preservation</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setView('client');
-                                            setIsAdminAuthenticated(false);
-                                        }}
-                                        className={`flex-1 touch-target px-4 py-3 rounded-lg font-semibold transition ${view === 'client' ? 'bg-blue-600' : 'bg-gray-700 active:bg-gray-600'}`}
-                                    >
-                                        Get Quote
-                                    </button>
-                                    <button
-                                        onClick={() => setView('admin')}
-                                        className={`flex-1 touch-target px-4 py-3 rounded-lg font-semibold transition ${view === 'admin' ? 'bg-blue-600' : 'bg-gray-700 active:bg-gray-600'}`}
-                                    >
-                                        Admin
-                                    </button>
-                                </div>
-                            </div>
+                    <header className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg p-4">
+                        <h1 className="text-2xl font-bold">Memory Transport by QTS</h1>
+                        <p className="text-sm text-gray-300">White-Glove Memory Preservation</p>
+                        <div className="flex gap-2 mt-3">
+                            <button onClick={() => setView('client')} className={`px-4 py-2 rounded ${view === 'client' ? 'bg-blue-600' : 'bg-gray-700'}`}>Get Quote</button>
+                            <button onClick={() => setView('admin')} className={`px-4 py-2 rounded ${view === 'admin' ? 'bg-blue-600' : 'bg-gray-700'}`}>Admin</button>
                         </div>
                     </header>
-
-                    <main className="px-4 py-6 pb-20">
-                        {view === 'client' ? (
-                            <ClientQuoteForm quotes={quotes} setQuotes={setQuotes} />
-                        ) : (
-                            !isAdminAuthenticated ? (
-                                <AdminLogin 
-                                    password={adminPassword}
-                                    setPassword={setAdminPassword}
-                                    setIsAuthenticated={setIsAdminAuthenticated}
-                                    correctPassword={ADMIN_PASSWORD}
-                                />
-                            ) : (
-                                <AdminDashboard 
-                                    quotes={quotes}
-                                    setQuotes={setQuotes}
-                                    bookings={bookings}
-                                    setBookings={setBookings}
-                                />
-                            )
-                        )}
+                    <main className="p-4">
+                        {view === 'client' ? <QuoteForm /> : !authenticated ? <Login setAuth={setAuthenticated} /> : <Admin />}
                     </main>
                 </div>
             );
         }
 
-        function ClientQuoteForm({ quotes, setQuotes }) {
-            const [formData, setFormData] = useState({
-                name: '',
-                email: '',
-                phone: '',
-                tapeCount: '',
-                tapeTypes: [],
-                tapeCondition: '',
-                totalHours: '',
-                tier: '',
-                customEditing: false,
-                rushService: false,
-                pickupPreferred: '',
-                notes: '',
-                referralSource: '',
-                submittedAt: ''
-            });
+        function QuoteForm() {
             const [submitted, setSubmitted] = useState(false);
-            const [showPricing, setShowPricing] = useState(false);
-
-            const tapeTypeOptions = [
-                'VHS', 'VHS-C', 'S-VHS', 'MiniDV', 'Mini DVD', 'DVD',
-                'Hi8', 'Video8', 'Digital8', 'Betamax'
-            ];
-
-            const conditionOptions = ['Good', 'Fair', 'Poor', 'Unknown'];
-            
-            const referralOptions = [
-                'Google Search', 'Facebook', 'Instagram', 'Nextdoor',
-                'Fort Worth Moms', 'Friend/Family Referral', 'Repeat Customer', 'Other'
-            ];
+            const [form, setForm] = useState({ name: '', email: '', phone: '', tapes: '', types: '' });
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                const newQuote = {
-                    ...formData,
-                    id: Date.now(),
-                    submittedAt: new Date().toISOString(),
-                    status: 'pending'
-                };
                 
-                // Send emails via Netlify function
-                await sendQuoteEmails(newQuote);
-                
-                setQuotes([...quotes, newQuote]);
-                setSubmitted(true);
-                setTimeout(() => {
-                    setSubmitted(false);
-                    setFormData({
-                        name: '', email: '', phone: '', tapeCount: '', tapeTypes: [],
-                        tapeCondition: '', totalHours: '', tier: '', customEditing: false,
-                        rushService: false, pickupPreferred: '', notes: '', referralSource: ''
-                    });
-                }, 3000);
-            };
-
-            const sendQuoteEmails = async (quote) => {
                 try {
-                    // Send admin notification
-                    const adminEmailContent = `
-New Quote Request Received!
-
-CLIENT INFO:
-Name: ${quote.name}
-Email: ${quote.email}
-Phone: ${quote.phone}
-
-TAPE DETAILS:
-Count: ${quote.tapeCount}
-Types: ${quote.tapeTypes.join(', ')}
-Condition: ${quote.tapeCondition}
-Total Hours: ${quote.totalHours || 'Not specified'}
-
-PREFERENCES:
-Tier: ${quote.tier || 'Not specified'}
-Rush Service: ${quote.rushService ? 'Yes' : 'No'}
-Custom Editing: ${quote.customEditing ? 'Yes' : 'No'}
-Pickup: ${quote.pickupPreferred || 'Not specified'}
-
-REFERRAL: ${quote.referralSource || 'Not specified'}
-
-NOTES: ${quote.notes || 'None'}
-
-Submitted: ${new Date(quote.submittedAt).toLocaleString()}
-                    `;
-
                     await fetch('/.netlify/functions/send-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             to: 'memory.transport@qtslimo.com',
-                            subject: `New Quote Request - ${quote.name}`,
-                            text: adminEmailContent
+                            subject: `New Quote - ${form.name}`,
+                            text: `Name: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nTapes: ${form.tapes}\nTypes: ${form.types}`
                         })
                     });
-
-                    // Send client confirmation
-                    const clientEmailContent = `
-Hi ${quote.name},
-
-Thank you for choosing Memory Transport by QTS!
-
-We've received your quote request for ${quote.tapeCount} tape(s): ${quote.tapeTypes.join(', ')}.
-
-What happens next:
-1. We'll review your request and send a detailed quote within 24 hours
-2. Once approved, we'll schedule white-glove pickup
-3. Your tapes will be professionally digitized (7-10 business days standard)
-4. Digital files and originals delivered back to you
-
-Questions? Reply to this email or call us at (817) 616-0509.
-
-Best regards,
-Memory Transport by QTS
-memory.transport@qtslimo.com
-(817) 616-0509
-                    `;
 
                     await fetch('/.netlify/functions/send-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            to: quote.email,
-                            subject: 'Quote Request Received - Memory Transport by QTS',
-                            text: clientEmailContent
+                            to: form.email,
+                            subject: 'Quote Request Received',
+                            text: `Hi ${form.name},\n\nThank you for your quote request! We'll respond within 24 hours.\n\nBest regards,\nMemory Transport by QTS\n(817) 616-0509`
                         })
                     });
 
-                    console.log('Emails sent successfully');
-                } catch (error) {
-                    console.error('Email send failed:', error);
-                    alert('Quote saved! Note: Email notifications may not have sent. Please check your inbox.');
+                    setSubmitted(true);
+                } catch (err) {
+                    alert('Submission saved locally. Email notification may have failed.');
                 }
-            };
-
-            const handleTapeTypeChange = (type) => {
-                setFormData(prev => ({
-                    ...prev,
-                    tapeTypes: prev.tapeTypes.includes(type)
-                        ? prev.tapeTypes.filter(t => t !== type)
-                        : [...prev.tapeTypes, type]
-                }));
             };
 
             if (submitted) {
                 return (
-                    <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-                        <div className="text-green-600 text-5xl mb-4">✓</div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-3">Quote Request Received!</h2>
-                        <p className="text-gray-600 mb-4 text-sm">
-                            We'll review your request and get back to you within 24 hours.
-                        </p>
-                        <p className="text-xs text-gray-500">Confirmation sent to {formData.email}</p>
+                    <div className="bg-white p-6 rounded-lg shadow text-center">
+                        <div className="text-5xl mb-4">✓</div>
+                        <h2 className="text-xl font-bold">Quote Request Received!</h2>
+                        <p className="text-gray-600 mt-2">We'll contact you within 24 hours.</p>
                     </div>
                 );
             }
 
             return (
-                <div>
-                    {/* Pricing Tiers Preview */}
-                    <div className="mb-6">
-                        <button
-                            onClick={() => setShowPricing(!showPricing)}
-                            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg touch-target active:bg-blue-700 transition"
-                        >
-                            {showPricing ? '▼ Hide Pricing' : '► View Our Pricing Tiers'}
-                        </button>
-                        
-                        {showPricing && (
-                            <div className="mt-4 space-y-4">
-                                <PricingTierCard 
-                                    name="BASIC"
-                                    price="$35/tape"
-                                    discount="$30/tape for 10+"
-                                    items={[
-                                        'Standard digitization (720p)',
-                                        '15-day download link',
-                                        'FREE pickup/delivery (15 miles from 76002)'
-                                    ]}
-                                />
-                                <PricingTierCard 
-                                    name="PREMIUM"
-                                    price="$45/tape"
-                                    discount="$38/tape for 10+"
-                                    savings="Save $15"
-                                    items={[
-                                        'Everything in BASIC, plus:',
-                                        '30-day download link (normally +$15)',
-                                        'USB drive included (normally +$15)',
-                                        'FREE pickup/delivery (20 miles from 76002)'
-                                    ]}
-                                />
-                                <PricingTierCard 
-                                    name="WHITE GLOVE"
-                                    price="$60/tape"
-                                    discount="$52/tape for 10+"
-                                    savings="Save $40"
-                                    items={[
-                                        'Everything in PREMIUM, plus:',
-                                        'Lifetime cloud storage (normally +$30)',
-                                        'DVD copy included (normally +$5)',
-                                        'FREE pickup/delivery (25 miles from 76002)'
-                                    ]}
-                                    featured={true}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">Request a Quote</h2>
-                        <p className="text-gray-600 mb-6 text-sm">Tell us about your tapes and we'll provide a detailed quote.</p>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Contact Information */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-gray-900 text-base">Contact Info</h3>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
-                                    <input
-                                        type="tel"
-                                        required
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Tape Details */}
-                            <div className="space-y-4 pt-4 border-t">
-                                <h3 className="font-semibold text-gray-900 text-base">Your Tapes</h3>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of tapes *</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        min="1"
-                                        value={formData.tapeCount}
-                                        onChange={(e) => setFormData({...formData, tapeCount: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3">Tape types (select all that apply) *</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {tapeTypeOptions.map(type => (
-                                            <label key={type} className="flex items-center space-x-3 p-3 border-2 rounded-lg cursor-pointer touch-target active:bg-gray-50 transition"
-                                                style={{
-                                                    borderColor: formData.tapeTypes.includes(type) ? '#3b82f6' : '#d1d5db',
-                                                    backgroundColor: formData.tapeTypes.includes(type) ? '#eff6ff' : 'white'
-                                                }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.tapeTypes.includes(type)}
-                                                    onChange={() => handleTapeTypeChange(type)}
-                                                    className="w-5 h-5 text-blue-600 rounded"
-                                                />
-                                                <span className="text-sm font-medium text-gray-700">{type}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Condition of tapes *</label>
-                                    <select
-                                        required
-                                        value={formData.tapeCondition}
-                                        onChange={(e) => setFormData({...formData, tapeCondition: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="">Select condition</option>
-                                        {conditionOptions.map(cond => (
-                                            <option key={cond} value={cond}>{cond}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Estimated total hours of footage</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., 10 hours"
-                                        value={formData.totalHours}
-                                        onChange={(e) => setFormData({...formData, totalHours: e.target.value})}
-                                        className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Service Tier */}
-                            <div className="space-y-3 pt-4 border-t">
-                                <h3 className="font-semibold text-gray-900 text-base">Preferred Service Tier (optional)</h3>
-                                <div className="space-y-3">
-                                    {['basic', 'premium', 'whiteGlove', 'recommend'].map(tier => (
-                                        <label key={tier} className="flex items-center space-x-3 p-3 border-2 rounded-lg cursor-pointer touch-target active:bg-gray-50 transition"
-                                            style={{
-                                                borderColor: formData.tier === tier ? '#3b82f6' : '#d1d5db',
-                                                backgroundColor: formData.tier === tier ? '#eff6ff' : 'white'
-                                            }}>
-                                            <input
-                                                type="radio"
-                                                name="tier"
-                                                checked={formData.tier === tier}
-                                                onChange={() => setFormData({...formData, tier})}
-                                                className="w-5 h-5 text-blue-600"
-                                            />
-                                            <span className="text-sm font-medium text-gray-700">
-                                                {tier === 'basic' && 'Basic ($35/tape)'}
-                                                {tier === 'premium' && 'Premium ($45/tape)'}
-                                                {tier === 'whiteGlove' && 'White Glove ($60/tape)'}
-                                                {tier === 'recommend' && 'Not sure - recommend based on my needs'}
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Add-Ons */}
-                            <div className="space-y-3 pt-4 border-t">
-                                <h3 className="font-semibold text-gray-900 text-base">Additional Services</h3>
-                                <label className="flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer touch-target active:bg-gray-50 transition"
-                                    style={{
-                                        borderColor: formData.rushService ? '#3b82f6' : '#d1d5db',
-                                        backgroundColor: formData.rushService ? '#eff6ff' : 'white'
-                                    }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.rushService}
-                                        onChange={(e) => setFormData({...formData, rushService: e.target.checked})}
-                                        className="mt-1 w-5 h-5 text-blue-600 rounded"
-                                    />
-                                    <div>
-                                        <span className="text-sm font-semibold text-gray-900">Rush Service</span>
-                                        <p className="text-xs text-gray-600 mt-1">48-72 hour turnaround (+50% of base price)</p>
-                                    </div>
-                                </label>
-                                <label className="flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer touch-target active:bg-gray-50 transition"
-                                    style={{
-                                        borderColor: formData.customEditing ? '#3b82f6' : '#d1d5db',
-                                        backgroundColor: formData.customEditing ? '#eff6ff' : 'white'
-                                    }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.customEditing}
-                                        onChange={(e) => setFormData({...formData, customEditing: e.target.checked})}
-                                        className="mt-1 w-5 h-5 text-blue-600 rounded"
-                                    />
-                                    <div>
-                                        <span className="text-sm font-semibold text-gray-900">Custom Editing/Trimming</span>
-                                        <p className="text-xs text-gray-600 mt-1">Contact for pricing - we'll discuss your needs</p>
-                                    </div>
-                                </label>
-                            </div>
-
-                            {/* Pickup */}
-                            <div className="space-y-4 pt-4 border-t">
-                                <h3 className="font-semibold text-gray-900 text-base">Pickup & Delivery</h3>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Preferred pickup time/location</label>
-                                    <textarea
-                                        value={formData.pickupPreferred}
-                                        onChange={(e) => setFormData({...formData, pickupPreferred: e.target.value})}
-                                        rows="2"
-                                        placeholder="e.g., Weekday evenings, Fort Worth"
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Free pickup within 15-25 miles of 76002 (varies by tier). Contact for quote if beyond.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Referral Source */}
-                            <div className="space-y-4 pt-4 border-t">
-                                <h3 className="font-semibold text-gray-900 text-base">How did you hear about us?</h3>
-                                <select
-                                    value={formData.referralSource}
-                                    onChange={(e) => setFormData({...formData, referralSource: e.target.value})}
-                                    className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">Select source (optional)</option>
-                                    {referralOptions.map(source => (
-                                        <option key={source} value={source}>{source}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Notes */}
-                            <div className="space-y-4 pt-4 border-t">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Additional notes or special requests</label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                    rows="3"
-                                    placeholder="Special requirements, concerns about tape condition, specific events captured, etc."
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="w-full bg-blue-600 active:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition shadow-lg touch-target text-lg"
-                            >
-                                Request Quote
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Info Box */}
-                    <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-blue-900 mb-3 text-sm">What happens next?</h3>
-                        <ol className="space-y-2 text-xs text-blue-800">
-                            <li className="flex"><span className="font-bold mr-2">1.</span><span>We review your request and send a detailed quote within 24 hours</span></li>
-                            <li className="flex"><span className="font-bold mr-2">2.</span><span>Once approved, we schedule a white-glove pickup</span></li>
-                            <li className="flex"><span className="font-bold mr-2">3.</span><span>Your tapes are professionally digitized (7-10 business days standard)</span></li>
-                            <li className="flex"><span className="font-bold mr-2">4.</span><span>Digital files and originals delivered back to you</span></li>
-                        </ol>
-                    </div>
+                <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">Request a Quote</h2>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block font-medium mb-1">Name *</label>
+                            <input required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full border-2 p-3 rounded" />
+                        </div>
+                        <div>
+                            <label className="block font-medium mb-1">Email *</label>
+                            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full border-2 p-3 rounded" />
+                        </div>
+                        <div>
+                            <label className="block font-medium mb-1">Phone *</label>
+                            <input type="tel" required value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} className="w-full border-2 p-3 rounded" />
+                        </div>
+                        <div>
+                            <label className="block font-medium mb-1">Number of Tapes *</label>
+                            <input type="number" required value={form.tapes} onChange={(e) => setForm({...form, tapes: e.target.value})} className="w-full border-2 p-3 rounded" />
+                        </div>
+                        <div>
+                            <label className="block font-medium mb-1">Tape Types *</label>
+                            <input required placeholder="e.g., VHS, MiniDV" value={form.types} onChange={(e) => setForm({...form, types: e.target.value})} className="w-full border-2 p-3 rounded" />
+                        </div>
+                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700">Submit Quote Request</button>
+                    </form>
                 </div>
             );
         }
 
-        function PricingTierCard({ name, price, discount, savings, items, featured }) {
+        function Login({ setAuth }) {
+            const [pwd, setPwd] = useState('');
             return (
-                <div className={`p-4 rounded-lg border-2 ${featured ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg">{name}</h3>
-                        {savings && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-semibold">{savings}</span>}
-                    </div>
-                    <p className="text-2xl font-bold text-blue-600 mb-1">{price}</p>
-                    <p className="text-xs text-gray-600 mb-3">{discount}</p>
-                    <ul className="space-y-1">
-                        {items.map((item, i) => (
-                            <li key={i} className="text-xs text-gray-700">{item}</li>
-                        ))}
-                    </ul>
+                <div className="bg-white p-6 rounded-lg shadow max-w-md mx-auto">
+                    <h2 className="text-xl font-bold mb-4">Admin Login</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); pwd === 'qts2024' ? setAuth(true) : alert('Wrong password'); }}>
+                        <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="w-full border-2 p-3 rounded mb-4" placeholder="Password" />
+                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded">Login</button>
+                    </form>
                 </div>
             );
         }
 
-        function AdminLogin({ password, setPassword, setIsAuthenticated, correctPassword }) {
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (password === correctPassword) {
-                    setIsAuthenticated(true);
-                } else {
-                    alert('Incorrect password');
-                }
-            };
-
+        function Admin() {
             return (
-                <div>
-                    <div className="bg-white rounded-lg shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Admin Login</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full touch-target px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="w-full bg-blue-600 active:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition shadow-lg touch-target"
-                            >
-                                Login
-                            </button>
-                        </form>
-                    </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-xl font-bold mb-4">Admin Dashboard</h2>
+                    <p className="text-gray-600">Check your email at memory.transport@qtslimo.com for quote requests!</p>
                 </div>
             );
         }
 
-        function AdminDashboard({ quotes, setQuotes, bookings, setBookings }) {
-            const [activeTab, setActiveTab] = useState('quotes');
-
-            return (
-                <div>
-                    <div className="mb-4">
-                        <div className="flex gap-2 border-b-2">
-                            <button
-                                onClick={() => setActiveTab('quotes')}
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
