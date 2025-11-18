@@ -12,12 +12,26 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
+
+        const useLocalStorage = (key, initialValue) => {
+            const [value, setValue] = useState(() => {
+                const stored = localStorage.getItem(key);
+                return stored ? JSON.parse(stored) : initialValue;
+            });
+
+            useEffect(() => {
+                localStorage.setItem(key, JSON.stringify(value));
+            }, [key, value]);
+
+            return [value, setValue];
+        };
 
         function App() {
             const [view, setView] = useState('client');
             const [password, setPassword] = useState('');
             const [authenticated, setAuthenticated] = useState(false);
+            const [quotes, setQuotes] = useLocalStorage('memoryTransportQuotes', []);
 
             return (
                 <div className="min-h-screen bg-gray-50">
@@ -36,19 +50,36 @@
                         />
                     </header>
                     <main className="p-4">
-                        {view === 'client' ? <QuoteForm /> : !authenticated ? <Login setAuth={setAuthenticated} /> : <Admin />}
+                        {view === 'client' ? (
+                            <QuoteForm quotes={quotes} setQuotes={setQuotes} />
+                        ) : (
+                            !authenticated ? (
+                                <Login setAuth={setAuthenticated} />
+                            ) : (
+                                <AdminDashboard quotes={quotes} setQuotes={setQuotes} />
+                            )
+                        )}
                     </main>
                     <Footer />
                 </div>
             );
         }
 
-        function QuoteForm() {
+        function QuoteForm({ quotes, setQuotes }) {
             const [submitted, setSubmitted] = useState(false);
             const [form, setForm] = useState({ name: '', email: '', phone: '', tapes: '', types: '', tier: '', addons: '' });
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
+                
+                const newQuote = {
+                    ...form,
+                    id: Date.now(),
+                    submittedAt: new Date().toISOString(),
+                    status: 'pending'
+                };
+                
+                setQuotes([...quotes, newQuote]);
                 
                 try {
                     // Send admin email FIRST
@@ -62,8 +93,8 @@
                         })
                     });
 
-                    // Wait 1 seconds (1000 milliseconds)
-await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Wait 1 second
+                    await new Promise(resolve => setTimeout(resolve, 1000));
 
                     // Then send client confirmation
                     await fetch('/.netlify/functions/send-email', {
@@ -83,7 +114,11 @@ await new Promise(resolve => setTimeout(resolve, 1000));
                     }, 3000);
                 } catch (err) {
                     console.error('Email error:', err);
-                    alert('Quote saved! Email notification may not have sent.');
+                    setSubmitted(true);
+                    setTimeout(() => {
+                        setSubmitted(false);
+                        setForm({ name: '', email: '', phone: '', tapes: '', types: '', tier: '', addons: '' });
+                    }, 3000);
                 }
             };
 
@@ -93,7 +128,6 @@ await new Promise(resolve => setTimeout(resolve, 1000));
                         <div className="text-5xl mb-4" style={{color: '#D4AF37'}}>✓</div>
                         <h2 className="text-xl font-bold">Quote Request Received!</h2>
                         <p className="text-gray-600 mt-2">We'll contact you within 24 hours.</p>
-                        <p className="text-sm text-gray-500 mt-2">Confirmation sent to {form.email}</p>
                     </div>
                 );
             }
@@ -311,25 +345,345 @@ await new Promise(resolve => setTimeout(resolve, 1000));
             );
         }
 
-        function Admin() {
+        function AdminDashboard({ quotes, setQuotes }) {
+            const [selectedQuote, setSelectedQuote] = useState(null);
+            const [showQuoteModal, setShowQuoteModal] = useState(false);
+            const [quoteData, setQuoteData] = useState({
+                basePrice: '',
+                quantity: '',
+                discount: '',
+                rushFee: '',
+                additionalFees: '',
+                total: '',
+                notes: ''
+            });
+
+            const pendingQuotes = quotes.filter(q => q.status === 'pending');
+            const otherQuotes = quotes.filter(q => q.status !== 'pending');
+
+            const calculateTotal = () => {
+                const base = parseFloat(quoteData.basePrice) || 0;
+                const qty = parseInt(quoteData.quantity) || 0;
+                const disc = parseFloat(quoteData.discount) || 0;
+                const rush = parseFloat(quoteData.rushFee) || 0;
+                const additional = parseFloat(quoteData.additionalFees) || 0;
+                
+                const subtotal = base * qty;
+                const total = subtotal - disc + rush + additional;
+                
+                setQuoteData({...quoteData, total: total.toFixed(2)});
+            };
+
+            const sendQuoteToClient = async () => {
+                const { basePrice, quantity, discount, rushFee, additionalFees, total, notes } = quoteData;
+                const subtotal = (parseFloat(basePrice) * parseInt(quantity)).toFixed(2);
+                
+                const quoteEmailText = `Hi ${selectedQuote.name},
+
+Here's your custom quote for digitizing ${selectedQuote.tapes} tape(s) - ${selectedQuote.types}:
+
+PRICING BREAKDOWN:
+Base Price: $${basePrice} × ${quantity} = $${subtotal}
+Discount: -$${discount || '0.00'}
+Rush Service Fee: +$${rushFee || '0.00'}
+Additional Fees: +$${additionalFees || '0.00'}
+
+TOTAL: $${total}
+
+${notes || 'Thank you for choosing Memory Transport by QTS!'}
+
+Selected Tier: ${selectedQuote.tier}
+Requested Add-ons: ${selectedQuote.addons || 'None'}
+
+Ready to proceed? Reply to this email or call us at (817) 616-0509 to schedule pickup!
+
+Best regards,
+Memory Transport by QTS
+memory.transport@qtslimo.com
+(817) 616-0509`;
+
+                try {
+                    await fetch('/.netlify/functions/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: selectedQuote.email,
+                            subject: 'Your Quote from Memory Transport by QTS',
+                            text: quoteEmailText
+                        })
+                    });
+                    
+                    alert('Quote sent successfully to ' + selectedQuote.email);
+                    setShowQuoteModal(false);
+                    setQuoteData({
+                        basePrice: '', quantity: '', discount: '', rushFee: '', 
+                        additionalFees: '', total: '', notes: ''
+                    });
+                } catch (error) {
+                    console.error('Failed to send quote:', error);
+                    alert('Failed to send quote. Please try again.');
+                }
+            };
+
+            const updateQuoteStatus = (quoteId, status) => {
+                setQuotes(quotes.map(q => q.id === quoteId ? {...q, status} : q));
+            };
+
+            if (selectedQuote && !showQuoteModal) {
+                return (
+                    <div className="max-w-2xl mx-auto">
+                        <button
+                            onClick={() => setSelectedQuote(null)}
+                            className="mb-4 text-blue-600 font-semibold"
+                        >
+                            ← Back to Quotes
+                        </button>
+                        
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-xl font-bold mb-4">Quote Details</h3>
+                            
+                            <div className="space-y-4 text-sm">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Client</label>
+                                    <p className="font-semibold">{selectedQuote.name}</p>
+                                    <p className="text-gray-600">{selectedQuote.email}</p>
+                                    <p className="text-gray-600">{selectedQuote.phone}</p>
+                                </div>
+
+                                <div className="border-t pt-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Tapes</label>
+                                    <p className="font-semibold">{selectedQuote.tapes} tapes</p>
+                                    <p className="text-gray-600">{selectedQuote.types}</p>
+                                </div>
+
+                                <div className="border-t pt-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Selected Tier</label>
+                                    <p className="font-semibold">{selectedQuote.tier || 'Not specified'}</p>
+                                </div>
+
+                                {selectedQuote.addons && (
+                                    <div className="border-t pt-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Requested Add-ons</label>
+                                        <p>{selectedQuote.addons}</p>
+                                    </div>
+                                )}
+
+                                <div className="border-t pt-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Submitted</label>
+                                    <p>{new Date(selectedQuote.submittedAt).toLocaleString()}</p>
+                                </div>
+
+                                <div className="border-t pt-4 space-y-3">
+                                    {selectedQuote.status === 'pending' && (
+                                        <>
+                                            <button
+                                                onClick={() => setShowQuoteModal(true)}
+                                                className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700"
+                                            >
+                                                Send Quote via Email
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    updateQuoteStatus(selectedQuote.id, 'declined');
+                                                    setSelectedQuote(null);
+                                                }}
+                                                className="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300"
+                                            >
+                                                Mark as Declined
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (showQuoteModal) {
+                return (
+                    <div className="max-w-md mx-auto">
+                        <button
+                            onClick={() => setShowQuoteModal(false)}
+                            className="mb-4 text-blue-600 font-semibold"
+                        >
+                            ← Back
+                        </button>
+                        
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="font-bold text-lg mb-4">Send Quote to {selectedQuote.name}</h3>
+                            
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Price per tape ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={quoteData.basePrice}
+                                        onChange={(e) => setQuoteData({...quoteData, basePrice: e.target.value})}
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder="35.00"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Quantity</label>
+                                    <input
+                                        type="number"
+                                        value={quoteData.quantity}
+                                        onChange={(e) => setQuoteData({...quoteData, quantity: e.target.value})}
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder={selectedQuote.tapes}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Discount ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={quoteData.discount}
+                                        onChange={(e) => setQuoteData({...quoteData, discount: e.target.value})}
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Rush Service Fee ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={quoteData.rushFee}
+                                        onChange={(e) => setQuoteData({...quoteData, rushFee: e.target.value})}
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Additional Fees ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={quoteData.additionalFees}
+                                        onChange={(e) => setQuoteData({...quoteData, additionalFees: e.target.value})}
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                
+                                <div className="border-t pt-3">
+                                    <button
+                                        onClick={calculateTotal}
+                                        className="w-full bg-gray-200 py-2 rounded-lg font-semibold mb-2 hover:bg-gray-300"
+                                    >
+                                        Calculate Total
+                                    </button>
+                                    <div className="bg-blue-50 p-3 rounded-lg">
+                                        <label className="block text-sm font-medium mb-1">Total Amount ($)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={quoteData.total}
+                                            onChange={(e) => setQuoteData({...quoteData, total: e.target.value})}
+                                            className="w-full px-3 py-2 border-2 rounded-lg font-bold text-lg"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+<label className="block text-sm font-medium mb-1">Additional Notes</label>
+                                    <textarea
+                                        value={quoteData.notes}
+                                        onChange={(e) => setQuoteData({...quoteData, notes: e.target.value})}
+                                        rows="3"
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                        placeholder="Any special terms, timeline, etc."
+                                    />
+                                </div>
+                                
+                                <div className="flex gap-2 pt-2">
+                                    <button
+                                        onClick={sendQuoteToClient}
+                                        className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700"
+                                    >
+                                        Send Quote
+                                    </button>
+                                    <button
+                                        onClick={() => setShowQuoteModal(false)}
+                                        className="flex-1 bg-gray-200 py-3 rounded-lg font-bold hover:bg-gray-300"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
-                <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
-                    <h2 className="text-xl font-bold mb-4">Admin Dashboard</h2>
-                    <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-                        <p className="font-semibold text-blue-900 mb-2">📧 Email Notifications</p>
-                        <p className="text-sm text-blue-800">All quote requests are automatically sent to:</p>
-                        <p className="text-sm font-mono bg-white p-2 rounded mt-2">memory.transport@qtslimo.com</p>
-                    </div>
-                    <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-700">Quote requests include:</p>
-                        <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                            <li>• Client contact information</li>
-                            <li>• Number and types of tapes</li>
-                            <li>• Selected service tier</li>
-                            <li>• Requested add-ons</li>
-                            <li>• Automatic confirmation sent to client</li>
-                        </ul>
-                    </div>
+                <div className="max-w-2xl mx-auto space-y-4">
+                    <h3 className="font-bold text-gray-900 text-xl">Pending Quotes ({pendingQuotes.length})</h3>
+                    {pendingQuotes.length === 0 ? (
+                        <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+                            No pending quote requests
+                        </div>
+                    ) : (
+                        pendingQuotes.map(quote => (
+                            <div
+                                key={quote.id}
+                                onClick={() => setSelectedQuote(quote)}
+                                className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg transition"
+                            >
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900">{quote.name}</h4>
+                                        <p className="text-sm text-gray-600">{quote.email}</p>
+                                    </div>
+                                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">
+                                        Pending
+                                    </span>
+                                </div>
+                                <div className="text-sm text-gray-700">
+                                    <p className="font-medium">{quote.tapes} tapes • {quote.types}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {new Date(quote.submittedAt).toLocaleDateString()} • Tier: {quote.tier || 'Not specified'}
+                                    </p>
+                                </div>
+                                <div className="mt-2 text-blue-600 text-sm font-semibold">
+                                    Click to view details →
+                                </div>
+                            </div>
+                        ))
+                    )}
+
+                    {otherQuotes.length > 0 && (
+                        <>
+                            <h3 className="font-bold text-gray-900 mt-6 text-xl">Previous Quotes</h3>
+                            {otherQuotes.map(quote => (
+                                <div
+                                    key={quote.id}
+                                    onClick={() => setSelectedQuote(quote)}
+                                    className="bg-white rounded-lg shadow p-4 opacity-75 cursor-pointer hover:opacity-100 transition"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-bold text-gray-900">{quote.name}</h4>
+                                            <p className="text-sm text-gray-600">{quote.email}</p>
+                                        </div>
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                                            quote.status === 'declined' ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
+                                        }`}>
+                                            {quote.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    )}
                 </div>
             );
         }
@@ -339,7 +693,11 @@ await new Promise(resolve => setTimeout(resolve, 1000));
                 <footer className="bg-gray-800 text-white py-6 mt-12">
                     <div className="max-w-4xl mx-auto px-4 text-center">
                         <p className="text-sm mb-2">© 2025 Memory Transport by QTS - White Glove Memory Preservation</p>
-                        <p className="text-xs text-gray-400 mb-3">A Division of QTS Black Car & Limo</p>
+                        <p className="text-xs text-gray-400 mb-3">
+                            <a href="https://www.dfwblackcarlimo.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{color: '#D4AF37'}}>
+                                A Division of QTS Black Car & Limo
+                            </a>
+                        </p>
                         <div className="space-x-4 text-sm">
                             <a href="terms.html" style={{color: '#D4AF37'}} className="hover:underline">Terms of Service</a>
                             <span className="text-gray-500">|</span>
