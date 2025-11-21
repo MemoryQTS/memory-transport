@@ -8,8 +8,9 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Quotes?sort%5B0%5D%5Bfield%5D=SubmittedAt&sort%5B0%5D%5Bdirection%5D=desc`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Quotes`,
       {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
         },
@@ -18,9 +19,14 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    if (!response.ok) {
+      console.error('Airtable Error:', data);
+      return res.status(response.status).json({ error: data.error });
+    }
+
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Airtable Error:', error);
+    console.error('Get Quotes Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
