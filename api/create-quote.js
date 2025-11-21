@@ -27,7 +27,7 @@ export default async function handler(req, res) {
             Tier: quoteData.tier,
             Addons: quoteData.addons || '',
             Status: 'Pending',
-            SubmittedAt: new Date().toISOString(),
+            'Quote Submitted': new Date().toISOString(),
           },
         }),
       }
