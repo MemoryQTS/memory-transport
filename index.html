@@ -491,7 +491,7 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
                 const { basePrice, quantity, discount, rushFee, additionalFees, total, notes } = quoteData;
                 const subtotal = (parseFloat(basePrice) * parseInt(quantity)).toFixed(2);
                 
-                const quoteEmailText = `Hi ${selectedQuote.fields.Name},\n\nHere's your custom quote for digitizing ${selectedQuote.fields.Tapes} tape(s) - ${selectedQuote.fields.Types}:\n\nPRICING BREAKDOWN:\nBase Price: $${basePrice} × ${quantity} = $${subtotal}\nDiscount: -$${discount || '0.00'}\nRush Service Fee: +$${rushFee || '0.00'}\nAdditional Fees: +$${additionalFees || '0.00'}\n\nTOTAL: $${total}\n\n50% Deposit Required: $${(parseFloat(total) * 0.5).toFixed(2)}\n\n${notes || 'Thank you for choosing Memory Transport by QTS!'}\n\nSelected Tier: ${selectedQuote.fields.Tier}\nRequested Add-ons: ${selectedQuote.fields.Addons || 'None'}\n\nNEXT STEPS:\nReady to proceed? Please review and sign our Service Agreement:\nhttps://www.cognitoforms.com/QTSBlackCarLimo/MemoryTransportServiceAgreement\n\nYou can also review our Terms of Service:\nhttps://memorytransport.netlify.app/terms.html\n\nQuestions? Reply to this email or call us at (817) 616-0509 to schedule pickup!\n\nBest regards,\nMemory Transport by QTS\nhttps://memory-transport.vercel.app\nmemory.transport@qtslimo.com\n(817) 616-0509`;
+                const quoteEmailText = `Hi ${selectedQuote.fields.Name},\n\nHere's your custom quote for digitizing ${selectedQuote.fields.Tapes} tape(s) - ${selectedQuote.fields.Types}:\n\nPRICING BREAKDOWN:\nBase Price: $${basePrice} × ${quantity} = $${subtotal}\nDiscount: -$${discount || '0.00'}\nRush Service Fee: +$${rushFee || '0.00'}\nAdditional Fees: +$${additionalFees || '0.00'}\n\nTOTAL: $${total}\n\n50% Deposit Required: $${(parseFloat(total) * 0.5).toFixed(2)}\n\n${notes || 'Thank you for choosing Memory Transport by QTS!'}\n\nSelected Tier: ${selectedQuote.fields.Tier}\nRequested Add-ons: ${selectedQuote.fields.Addons || 'None'}\n\nNEXT STEPS:\nReady to proceed? Please review and sign our Service Agreement:\nhttps://www.cognitoforms.com/QTSBlackCarLimo/MemoryTransportServiceAgreement\n\nYou can also review our Terms of Service:\nhttps://memory-transport.vercel.app/terms.html\n\nQuestions? Reply to this email or call us at (817) 616-0509 to schedule pickup!\n\nBest regards,\nMemory Transport by QTS\nhttps://memory-transport.vercel.app\nmemory.transport@qtslimo.com\n(817) 616-0509`;
 
                 try {
                     await fetch('/api/send-email', {
@@ -756,8 +756,8 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                                 <div className="text-sm text-gray-700">
                                     <p className="font-medium">{quote.fields.Tapes} tapes • {quote.fields.Types}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {new Date(quote.fields.SubmittedAt).toLocaleDateString()} • Tier: {quote.fields.Tier || 'Not specified'}
-                                    </p>
+    {new Date(quote.fields['Quote Submitted']).toLocaleDateString()} • Tier: {quote.fields.Tier || 'Not specified'}
+</p>
                                 </div>
                                 <div className="mt-2 text-blue-600 text-sm font-semibold">
                                     Click to view details →
