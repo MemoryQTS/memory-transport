@@ -24,10 +24,12 @@ export default async function handler(req, res) {
             Phone: quoteData.phone,
             Tapes: parseInt(quoteData.tapes),
             Types: quoteData.types,
+            'Tape Count By Type': quoteData.types,
             Tier: quoteData.tier,
             Addons: quoteData.addons || '',
             Status: 'Pending',
             'Quote Submitted': new Date().toISOString(),
+            'Current Location': 'Client Location'
           },
         }),
       }
