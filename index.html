@@ -162,8 +162,7 @@
                     </div>
                 );
             }
-
-            return (
+return (
                 <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
                     <h2 className="text-2xl font-bold mb-2">Request a Quote</h2>
                     <p className="text-gray-600 mb-4 text-sm">Tell us about your tapes and we'll provide a detailed quote.</p>
@@ -214,7 +213,8 @@
                                 </div>
                             )}
                         </div>
-<div style={{borderTop: '2px solid #D4AF37', paddingTop: '16px'}}>
+
+                        <div style={{borderTop: '2px solid #D4AF37', paddingTop: '16px'}}>
                             <label className="block font-semibold mb-3">Select Service Tier *</label>
                             <div className="space-y-3">
                                 {[
@@ -345,13 +345,13 @@
                 </div>
             );
         }
-
-        function AdminDashboard() {
+function AdminDashboard() {
             const [quotes, setQuotes] = useState([]);
             const [loading, setLoading] = useState(true);
             const [selectedQuote, setSelectedQuote] = useState(null);
             const [showQuoteModal, setShowQuoteModal] = useState(false);
             const [showStatusModal, setShowStatusModal] = useState(false);
+            const [showDetailsModal, setShowDetailsModal] = useState(false);
             const [quoteData, setQuoteData] = useState({
                 basePrice: '',
                 quantity: '',
@@ -366,14 +366,13 @@
                 previewLinks: '',
                 downloadLink: ''
             });
-            const [showDetailsModal, setShowDetailsModal] = useState(false);
-const [detailsData, setDetailsData] = useState({
-    depositAmount: '',
-    finalPrice: '',
-    tapesReceivedDate: '',
-    tapesReturnedDate: '',
-    currentLocation: ''
-});
+            const [detailsData, setDetailsData] = useState({
+                depositAmount: '',
+                finalPrice: '',
+                tapesReceivedDate: '',
+                tapesReturnedDate: '',
+                currentLocation: ''
+            });
 
             useEffect(() => {
                 loadQuotes();
@@ -403,7 +402,8 @@ const [detailsData, setDetailsData] = useState({
                 };
                 return colors[status] || 'bg-gray-100 text-gray-800';
             };
-const sendStatusEmail = async (quote, newStatus, links = {}) => {
+
+            const sendStatusEmail = async (quote, newStatus, links = {}) => {
                 const emailTemplates = {
                     'Pending': {
                         subject: 'Quote Request Received - Memory Transport by QTS',
@@ -448,48 +448,6 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
             const updateQuoteStatus = async () => {
                 try {
                     const fields = { Status: statusData.newStatus };
-                    const updateQuoteDetails = async () => {
-    try {
-        const fields = {};
-        
-        if (detailsData.depositAmount) {
-            fields['Deposit Amount'] = parseFloat(detailsData.depositAmount);
-        }
-        
-        if (detailsData.finalPrice) {
-            fields['Final Price'] = parseFloat(detailsData.finalPrice);
-        }
-        
-        if (detailsData.tapesReceivedDate) {
-            fields['Tapes Received Date'] = detailsData.tapesReceivedDate;
-        }
-        
-        if (detailsData.tapesReturnedDate) {
-            fields['Tapes Returned Date'] = detailsData.tapesReturnedDate;
-        }
-        
-        if (detailsData.currentLocation) {
-            fields['Current Location'] = detailsData.currentLocation;
-        }
-
-        await fetch('/api/update-quote', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                recordId: selectedQuote.id,
-                fields: fields
-            })
-        });
-
-        alert('Quote details updated successfully!');
-        setShowDetailsModal(false);
-        setDetailsData({ depositAmount: '', finalPrice: '', tapesReceivedDate: '', tapesReturnedDate: '', currentLocation: '' });
-        loadQuotes();
-    } catch (error) {
-        console.error('Error updating details:', error);
-        alert('Failed to update details');
-    }
-};
                     
                     if (statusData.newStatus === 'Preview Ready' && statusData.previewLinks) {
                         fields.PreviewLinks = statusData.previewLinks;
@@ -523,6 +481,49 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
                 } catch (error) {
                     console.error('Error updating status:', error);
                     alert('Failed to update status');
+                }
+            };
+
+            const updateQuoteDetails = async () => {
+                try {
+                    const fields = {};
+                    
+                    if (detailsData.depositAmount) {
+                        fields['Deposit Amount'] = parseFloat(detailsData.depositAmount);
+                    }
+                    
+                    if (detailsData.finalPrice) {
+                        fields['Final Price'] = parseFloat(detailsData.finalPrice);
+                    }
+                    
+                    if (detailsData.tapesReceivedDate) {
+                        fields['Tapes Received Date'] = detailsData.tapesReceivedDate;
+                    }
+                    
+                    if (detailsData.tapesReturnedDate) {
+                        fields['Tapes Returned Date'] = detailsData.tapesReturnedDate;
+                    }
+                    
+                    if (detailsData.currentLocation) {
+                        fields['Current Location'] = detailsData.currentLocation;
+                    }
+
+                    await fetch('/api/update-quote', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recordId: selectedQuote.id,
+                            fields: fields
+                        })
+                    });
+
+                    alert('Quote details updated successfully!');
+                    setShowDetailsModal(false);
+                    setDetailsData({ depositAmount: '', finalPrice: '', tapesReceivedDate: '', tapesReturnedDate: '', currentLocation: '' });
+                    loadQuotes();
+                } catch (error) {
+                    console.error('Error updating details:', error);
+                    alert('Failed to update details');
                 }
             };
 
@@ -561,7 +562,7 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
                             recordId: selectedQuote.id,
                             fields: {
                                 Status: 'Quoted',
-                                QuotedPrice: parseFloat(total)
+                                'Quoted Price': parseFloat(total)
                             }
                         })
                     });
@@ -580,7 +581,7 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
             if (loading) {
                 return <div className="text-center py-10">Loading quotes...</div>;
             }
-if (selectedQuote && !showQuoteModal && !showStatusModal) {
+if (selectedQuote && !showQuoteModal && !showStatusModal && !showDetailsModal) {
                 return (
                     <div className="max-w-2xl mx-auto">
                         <button onClick={() => setSelectedQuote(null)} className="mb-4 text-blue-600 font-semibold">
@@ -635,33 +636,32 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                                     </div>
                                 )}
 
-                               <div className="border-t pt-4">
-    <label className="text-xs font-bold text-gray-500 uppercase">Submitted</label>
-    <p>{new Date(selectedQuote.fields['Quote Submitted']).toLocaleString()}</p>
-</div>
+                                <div className="border-t pt-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Submitted</label>
+                                    <p>{new Date(selectedQuote.fields['Quote Submitted']).toLocaleString()}</p>
+                                </div>
 
-                               <div className="border-t pt-4 space-y-3">
-    {selectedQuote.fields.Status === 'Pending' && (
-        <button onClick={() => setShowQuoteModal(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">
-            Send Quote via Email
-        </button>
-    )}
-    <button onClick={() => { 
-        setDetailsData({
-            depositAmount: selectedQuote.fields['Deposit Amount'] || '',
-            finalPrice: selectedQuote.fields['Final Price'] || '',
-            tapesReceivedDate: selectedQuote.fields['Tapes Received Date'] || '',
-            tapesReturnedDate: selectedQuote.fields['Tapes Returned Date'] || '',
-            currentLocation: selectedQuote.fields['Current Location'] || ''
-        });
-        setShowDetailsModal(true); 
-    }} className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700">
-        Edit Quote Details
-    </button>
-    <button onClick={() => { setStatusData({ ...statusData, newStatus: selectedQuote.fields.Status }); setShowStatusModal(true); }} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">
-        Update Status
-    </button>
-</div>
+                                <div className="border-t pt-4 space-y-3">
+                                    {selectedQuote.fields.Status === 'Pending' && (
+                                        <button onClick={() => setShowQuoteModal(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">
+                                            Send Quote via Email
+                                        </button>
+                                    )}
+                                    <button onClick={() => { 
+                                        setDetailsData({
+                                            depositAmount: selectedQuote.fields['Deposit Amount'] || '',
+                                            finalPrice: selectedQuote.fields['Final Price'] || '',
+                                            tapesReceivedDate: selectedQuote.fields['Tapes Received Date'] || '',
+                                            tapesReturnedDate: selectedQuote.fields['Tapes Returned Date'] || '',
+                                            currentLocation: selectedQuote.fields['Current Location'] || ''
+                                        });
+                                        setShowDetailsModal(true); 
+                                    }} className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700">
+                                        Edit Quote Details
+                                    </button>
+                                    <button onClick={() => { setStatusData({ ...statusData, newStatus: selectedQuote.fields.Status }); setShowStatusModal(true); }} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">
+                                        Update Status
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -726,8 +726,7 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                     </div>
                 );
             }
-
-            if (showStatusModal) {
+if (showStatusModal) {
                 return (
                     <div className="max-w-md mx-auto">
                         <button onClick={() => setShowStatusModal(false)} className="mb-4 text-blue-600 font-semibold">
@@ -793,107 +792,108 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                     </div>
                 );
             }
+
             if (showDetailsModal) {
-    return (
-        <div className="max-w-md mx-auto">
-            <button onClick={() => setShowDetailsModal(false)} className="mb-4 text-blue-600 font-semibold">
-                ← Back
-            </button>
-            
-            <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="font-bold text-lg mb-4">Edit Quote Details for {selectedQuote.fields.Name}</h3>
-                
-                <div className="space-y-3">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Deposit Amount ($)</label>
-                        <input 
-                            type="number" 
-                            step="0.01" 
-                            value={detailsData.depositAmount} 
-                            onChange={(e) => setDetailsData({...detailsData, depositAmount: e.target.value})} 
-                            className="w-full px-3 py-2 border-2 rounded-lg" 
-                            placeholder="0.00" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Amount of deposit received</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Final Price ($)</label>
-                        <input 
-                            type="number" 
-                            step="0.01" 
-                            value={detailsData.finalPrice} 
-                            onChange={(e) => setDetailsData({...detailsData, finalPrice: e.target.value})} 
-                            className="w-full px-3 py-2 border-2 rounded-lg" 
-                            placeholder="0.00" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Final total price paid</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Tapes Received Date</label>
-                        <input 
-                            type="date" 
-                            value={detailsData.tapesReceivedDate} 
-                            onChange={(e) => setDetailsData({...detailsData, tapesReceivedDate: e.target.value})} 
-                            className="w-full px-3 py-2 border-2 rounded-lg" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">When tapes were picked up from client</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Tapes Returned Date</label>
-                        <input 
-                            type="date" 
-                            value={detailsData.tapesReturnedDate} 
-                            onChange={(e) => setDetailsData({...detailsData, tapesReturnedDate: e.target.value})} 
-                            className="w-full px-3 py-2 border-2 rounded-lg" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">When tapes were returned to client</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Current Location</label>
-                        <select 
-                            value={detailsData.currentLocation} 
-                            onChange={(e) => setDetailsData({...detailsData, currentLocation: e.target.value})} 
-                            className="w-full px-3 py-2 border-2 rounded-lg"
-                        >
-                            <option value="">Select location...</option>
-                            <option value="Client Location">Client Location</option>
-                            <option value="In Transit to Us">In Transit to Us</option>
-                            <option value="At Our Facility">At Our Facility</option>
-                            <option value="Processing">Processing</option>
-                            <option value="In Transit to Client">In Transit to Client</option>
-                            <option value="Returned to Client">Returned to Client</option>
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">Current physical location of tapes</p>
-                    </div>
-
-                    <div className="bg-blue-50 p-3 rounded-lg text-sm">
-                        <p className="font-semibold mb-1">Current Values:</p>
-                        <ul className="text-xs space-y-1">
-                            <li>Deposit: ${selectedQuote.fields['Deposit Amount'] || '0.00'}</li>
-                            <li>Final Price: ${selectedQuote.fields['Final Price'] || '0.00'}</li>
-                            <li>Received: {selectedQuote.fields['Tapes Received Date'] || 'Not set'}</li>
-                            <li>Returned: {selectedQuote.fields['Tapes Returned Date'] || 'Not set'}</li>
-                            <li>Location: {selectedQuote.fields['Current Location'] || 'Not set'}</li>
-                        </ul>
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                        <button onClick={updateQuoteDetails} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
-                            Save Details
+                return (
+                    <div className="max-w-md mx-auto">
+                        <button onClick={() => setShowDetailsModal(false)} className="mb-4 text-blue-600 font-semibold">
+                            ← Back
                         </button>
-                        <button onClick={() => setShowDetailsModal(false)} className="flex-1 bg-gray-200 py-3 rounded-lg font-bold hover:bg-gray-300">
-                            Cancel
-                        </button>
+                        
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="font-bold text-lg mb-4">Edit Quote Details for {selectedQuote.fields.Name}</h3>
+                            
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Deposit Amount ($)</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={detailsData.depositAmount} 
+                                        onChange={(e) => setDetailsData({...detailsData, depositAmount: e.target.value})} 
+                                        className="w-full px-3 py-2 border-2 rounded-lg" 
+                                        placeholder="0.00" 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Amount of deposit received</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Final Price ($)</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={detailsData.finalPrice} 
+                                        onChange={(e) => setDetailsData({...detailsData, finalPrice: e.target.value})} 
+                                        className="w-full px-3 py-2 border-2 rounded-lg" 
+                                        placeholder="0.00" 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Final total price paid</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Tapes Received Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={detailsData.tapesReceivedDate} 
+                                        onChange={(e) => setDetailsData({...detailsData, tapesReceivedDate: e.target.value})} 
+                                        className="w-full px-3 py-2 border-2 rounded-lg" 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">When tapes were picked up from client</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Tapes Returned Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={detailsData.tapesReturnedDate} 
+                                        onChange={(e) => setDetailsData({...detailsData, tapesReturnedDate: e.target.value})} 
+                                        className="w-full px-3 py-2 border-2 rounded-lg" 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">When tapes were returned to client</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Current Location</label>
+                                    <select 
+                                        value={detailsData.currentLocation} 
+                                        onChange={(e) => setDetailsData({...detailsData, currentLocation: e.target.value})} 
+                                        className="w-full px-3 py-2 border-2 rounded-lg"
+                                    >
+                                        <option value="">Select location...</option>
+                                        <option value="Client Location">Client Location</option>
+                                        <option value="In Transit to Us">In Transit to Us</option>
+                                        <option value="At Our Facility">At Our Facility</option>
+                                        <option value="Processing">Processing</option>
+                                        <option value="In Transit to Client">In Transit to Client</option>
+                                        <option value="Returned to Client">Returned to Client</option>
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Current physical location of tapes</p>
+                                </div>
+
+                                <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                                    <p className="font-semibold mb-1">Current Values:</p>
+                                    <ul className="text-xs space-y-1">
+                                        <li>Deposit: ${selectedQuote.fields['Deposit Amount'] || '0.00'}</li>
+                                        <li>Final Price: ${selectedQuote.fields['Final Price'] || '0.00'}</li>
+                                        <li>Received: {selectedQuote.fields['Tapes Received Date'] || 'Not set'}</li>
+                                        <li>Returned: {selectedQuote.fields['Tapes Returned Date'] || 'Not set'}</li>
+                                        <li>Location: {selectedQuote.fields['Current Location'] || 'Not set'}</li>
+                                    </ul>
+                                </div>
+
+                                <div className="flex gap-2 pt-2">
+                                    <button onClick={updateQuoteDetails} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
+                                        Save Details
+                                    </button>
+                                    <button onClick={() => setShowDetailsModal(false)} className="flex-1 bg-gray-200 py-3 rounded-lg font-bold hover:bg-gray-300">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+                );
+            }
 
             const pendingQuotes = quotes.filter(q => q.fields.Status === 'Pending');
             const otherQuotes = quotes.filter(q => q.fields.Status !== 'Pending');
@@ -920,8 +920,8 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                                 <div className="text-sm text-gray-700">
                                     <p className="font-medium">{quote.fields.Tapes} tapes • {quote.fields.Types}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-    {new Date(quote.fields['Quote Submitted']).toLocaleDateString()} • Tier: {quote.fields.Tier || 'Not specified'}
-</p>
+                                        {new Date(quote.fields['Quote Submitted']).toLocaleDateString()} • Tier: {quote.fields.Tier || 'Not specified'}
+                                    </p>
                                 </div>
                                 <div className="mt-2 text-blue-600 text-sm font-semibold">
                                     Click to view details →
@@ -952,8 +952,7 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                 </div>
             );
         }
-
-        function Footer() {
+function Footer() {
             return (
                 <footer className="bg-gray-800 text-white py-6 mt-12">
                     <div className="max-w-4xl mx-auto px-4 text-center">
