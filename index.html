@@ -585,10 +585,10 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                                     </div>
                                 )}
 
-                                <div className="border-t pt-4">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Submitted</label>
-                                    <p>{new Date(selectedQuote.fields.SubmittedAt).toLocaleString()}</p>
-                                </div>
+                               <div className="border-t pt-4">
+    <label className="text-xs font-bold text-gray-500 uppercase">Submitted</label>
+    <p>{new Date(selectedQuote.fields['Quote Submitted']).toLocaleString()}</p>
+</div>
 
                                 <div className="border-t pt-4 space-y-3">
                                     {selectedQuote.fields.Status === 'Pending' && (
