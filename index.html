@@ -366,6 +366,14 @@
                 previewLinks: '',
                 downloadLink: ''
             });
+            const [showDetailsModal, setShowDetailsModal] = useState(false);
+const [detailsData, setDetailsData] = useState({
+    depositAmount: '',
+    finalPrice: '',
+    tapesReceivedDate: '',
+    tapesReturnedDate: '',
+    currentLocation: ''
+});
 
             useEffect(() => {
                 loadQuotes();
@@ -440,6 +448,48 @@ const sendStatusEmail = async (quote, newStatus, links = {}) => {
             const updateQuoteStatus = async () => {
                 try {
                     const fields = { Status: statusData.newStatus };
+                    const updateQuoteDetails = async () => {
+    try {
+        const fields = {};
+        
+        if (detailsData.depositAmount) {
+            fields['Deposit Amount'] = parseFloat(detailsData.depositAmount);
+        }
+        
+        if (detailsData.finalPrice) {
+            fields['Final Price'] = parseFloat(detailsData.finalPrice);
+        }
+        
+        if (detailsData.tapesReceivedDate) {
+            fields['Tapes Received Date'] = detailsData.tapesReceivedDate;
+        }
+        
+        if (detailsData.tapesReturnedDate) {
+            fields['Tapes Returned Date'] = detailsData.tapesReturnedDate;
+        }
+        
+        if (detailsData.currentLocation) {
+            fields['Current Location'] = detailsData.currentLocation;
+        }
+
+        await fetch('/api/update-quote', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recordId: selectedQuote.id,
+                fields: fields
+            })
+        });
+
+        alert('Quote details updated successfully!');
+        setShowDetailsModal(false);
+        setDetailsData({ depositAmount: '', finalPrice: '', tapesReceivedDate: '', tapesReturnedDate: '', currentLocation: '' });
+        loadQuotes();
+    } catch (error) {
+        console.error('Error updating details:', error);
+        alert('Failed to update details');
+    }
+};
                     
                     if (statusData.newStatus === 'Preview Ready' && statusData.previewLinks) {
                         fields.PreviewLinks = statusData.previewLinks;
@@ -590,15 +640,28 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
     <p>{new Date(selectedQuote.fields['Quote Submitted']).toLocaleString()}</p>
 </div>
 
-                                <div className="border-t pt-4 space-y-3">
-                                    {selectedQuote.fields.Status === 'Pending' && (
-                                        <button onClick={() => setShowQuoteModal(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">
-                                            Send Quote via Email
-                                        </button>
-                                    )}
-                                    <button onClick={() => { setStatusData({ ...statusData, newStatus: selectedQuote.fields.Status }); setShowStatusModal(true); }} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">
-                                        Update Status
-                                    </button>
+                               <div className="border-t pt-4 space-y-3">
+    {selectedQuote.fields.Status === 'Pending' && (
+        <button onClick={() => setShowQuoteModal(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">
+            Send Quote via Email
+        </button>
+    )}
+    <button onClick={() => { 
+        setDetailsData({
+            depositAmount: selectedQuote.fields['Deposit Amount'] || '',
+            finalPrice: selectedQuote.fields['Final Price'] || '',
+            tapesReceivedDate: selectedQuote.fields['Tapes Received Date'] || '',
+            tapesReturnedDate: selectedQuote.fields['Tapes Returned Date'] || '',
+            currentLocation: selectedQuote.fields['Current Location'] || ''
+        });
+        setShowDetailsModal(true); 
+    }} className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700">
+        Edit Quote Details
+    </button>
+    <button onClick={() => { setStatusData({ ...statusData, newStatus: selectedQuote.fields.Status }); setShowStatusModal(true); }} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">
+        Update Status
+    </button>
+</div>
                                 </div>
                             </div>
                         </div>
@@ -730,6 +793,107 @@ if (selectedQuote && !showQuoteModal && !showStatusModal) {
                     </div>
                 );
             }
+            if (showDetailsModal) {
+    return (
+        <div className="max-w-md mx-auto">
+            <button onClick={() => setShowDetailsModal(false)} className="mb-4 text-blue-600 font-semibold">
+                ← Back
+            </button>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="font-bold text-lg mb-4">Edit Quote Details for {selectedQuote.fields.Name}</h3>
+                
+                <div className="space-y-3">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Deposit Amount ($)</label>
+                        <input 
+                            type="number" 
+                            step="0.01" 
+                            value={detailsData.depositAmount} 
+                            onChange={(e) => setDetailsData({...detailsData, depositAmount: e.target.value})} 
+                            className="w-full px-3 py-2 border-2 rounded-lg" 
+                            placeholder="0.00" 
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Amount of deposit received</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Final Price ($)</label>
+                        <input 
+                            type="number" 
+                            step="0.01" 
+                            value={detailsData.finalPrice} 
+                            onChange={(e) => setDetailsData({...detailsData, finalPrice: e.target.value})} 
+                            className="w-full px-3 py-2 border-2 rounded-lg" 
+                            placeholder="0.00" 
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Final total price paid</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Tapes Received Date</label>
+                        <input 
+                            type="date" 
+                            value={detailsData.tapesReceivedDate} 
+                            onChange={(e) => setDetailsData({...detailsData, tapesReceivedDate: e.target.value})} 
+                            className="w-full px-3 py-2 border-2 rounded-lg" 
+                        />
+                        <p className="text-xs text-gray-500 mt-1">When tapes were picked up from client</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Tapes Returned Date</label>
+                        <input 
+                            type="date" 
+                            value={detailsData.tapesReturnedDate} 
+                            onChange={(e) => setDetailsData({...detailsData, tapesReturnedDate: e.target.value})} 
+                            className="w-full px-3 py-2 border-2 rounded-lg" 
+                        />
+                        <p className="text-xs text-gray-500 mt-1">When tapes were returned to client</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Current Location</label>
+                        <select 
+                            value={detailsData.currentLocation} 
+                            onChange={(e) => setDetailsData({...detailsData, currentLocation: e.target.value})} 
+                            className="w-full px-3 py-2 border-2 rounded-lg"
+                        >
+                            <option value="">Select location...</option>
+                            <option value="Client Location">Client Location</option>
+                            <option value="In Transit to Us">In Transit to Us</option>
+                            <option value="At Our Facility">At Our Facility</option>
+                            <option value="Processing">Processing</option>
+                            <option value="In Transit to Client">In Transit to Client</option>
+                            <option value="Returned to Client">Returned to Client</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Current physical location of tapes</p>
+                    </div>
+
+                    <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                        <p className="font-semibold mb-1">Current Values:</p>
+                        <ul className="text-xs space-y-1">
+                            <li>Deposit: ${selectedQuote.fields['Deposit Amount'] || '0.00'}</li>
+                            <li>Final Price: ${selectedQuote.fields['Final Price'] || '0.00'}</li>
+                            <li>Received: {selectedQuote.fields['Tapes Received Date'] || 'Not set'}</li>
+                            <li>Returned: {selectedQuote.fields['Tapes Returned Date'] || 'Not set'}</li>
+                            <li>Location: {selectedQuote.fields['Current Location'] || 'Not set'}</li>
+                        </ul>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                        <button onClick={updateQuoteDetails} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
+                            Save Details
+                        </button>
+                        <button onClick={() => setShowDetailsModal(false)} className="flex-1 bg-gray-200 py-3 rounded-lg font-bold hover:bg-gray-300">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
             const pendingQuotes = quotes.filter(q => q.fields.Status === 'Pending');
             const otherQuotes = quotes.filter(q => q.fields.Status !== 'Pending');
